@@ -32,7 +32,7 @@ class AcountController {
             const otp = `${Math.floor(100000 + Math.random() * 900000)}`;
             const hashOtp = await bcrypt.hashSync(otp, saltRounds);
             const newUserOtp = {
-                user_id: isRegister.id,
+                email: isRegister.email,
                 otp: hashOtp,
                 expiresAt: Date.now() + 3600000,
             };
@@ -52,6 +52,7 @@ class AcountController {
                         email: email,
                         user_id: isRegister.id,
                     },
+                    success:true
                 });
             }
         } catch (error) {
@@ -63,9 +64,17 @@ class AcountController {
     };
     verifyOtpUser = async (req, res) => {
         try {
-            const { user_id, otp } = req.body;
+            const { email, otp } = req.body;
+            const User = await db.User.findOne({
+                where: { email: email },
+            });
+            if(!User){
+                throw new Error(
+                    'Tài khoản chưa được đăng ký',
+                );
+            }
             const UserVerify = await db.UserOTPVerification.findOne({
-                where: { user_id: user_id },
+                where: { email: email },
             });
             if (UserVerify.length <= 0) {
                 throw new Error(
@@ -76,7 +85,7 @@ class AcountController {
                 const hashOtp = UserVerify.otp;
                 if (expiresAt < Date.now()) {
                     await db.UserOTPVerification.destroy({
-                        where: { user_id: user_id },
+                        where: { email: email },
                     });
                     throw new Error('Mã xác nhận không chính xác hoặc đã hết hạn');
                 } else {
@@ -92,11 +101,11 @@ class AcountController {
                                 verified: true,
                             },
                             {
-                                where: { id: user_id },
+                                where: { email: email },
                             },
                         );
                         await db.UserOTPVerification.destroy({
-                            where: { user_id: user_id },
+                            where: { email: email },
                         });
                         return res.status(200).json({
                             message: 'Xác nhận thành công',

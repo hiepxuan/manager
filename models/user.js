@@ -20,6 +20,7 @@ module.exports = (sequelize, DataTypes) => {
             verified: DataTypes.BOOLEAN,
             avatar: DataTypes.STRING,
             isAdmin: DataTypes.BOOLEAN,
+            roles:DataTypes.STRING,
         },
         {
             sequelize,

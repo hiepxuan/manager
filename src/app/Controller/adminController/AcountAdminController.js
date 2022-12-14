@@ -7,17 +7,15 @@ const createError = require('http-errors');
 
 class AcountAdmin {
     login = async (req, res, next) => {
-        try {
+        // try {
             const { email, password } = req.body;
             const user = await db.User.findOne({
                 where: { email },
             });
+
             if (!user) {
                 next(createError(400, 'Mật khẩu hoặc email Không chính xác!'));
-                // return res.status(400).json({
-                //     success: false,
-                //     message: 'Mật khẩu hoặc email Không chính xác!',
-                // });
+
             } else {
                 const { verified } = user;
                 if (!verified) {
@@ -28,24 +26,16 @@ class AcountAdmin {
                         ),
                     );
 
-                    // return res.status(400).json({
-                    //     success: false,
-                    //     message: 'Mật khẩu hoặc email Không chính xác!',
-                    // });
                 } else {
                     const { isAdmin } = user;
                     if (!isAdmin) {
                         next(
                             createError(
-                                400,
-                                'Mật khẩu hoặc email Không chính xác!',
+                                401,
+                                'Permission denied!',
                             ),
                         );
 
-                        // return res.status(401).json({
-                        //     message: 'Đăng nhập thất bại! Bạn không có quyền!',
-                        //     success: false,
-                        // });
                     }
                     const valiPassWord = await bcrypt.compareSync(
                         password,
@@ -59,40 +49,37 @@ class AcountAdmin {
                             ),
                         );
 
-                        // return res.status(401).json({
-                        //     success: false,
-                        //     message: 'Mật khẩu hoặc email Không chính xác!',
-                        // });
                     }
                     const token = await jwt.sign(
                         {
                             id: user.id,
                             email: user.email,
                             isAdmin: true,
+                            roles:user.roles
                         },
                         process.env.SECRET_KEY,
                         { expiresIn: '1d' },
                     );
-                    res.cookie('token', token);
+
                     return res.status(200).json({
                         message: 'Đăng nhập thành công!',
                         success: true,
                         token: token,
                         name: user.name,
+                        roles: user.roles,
+                        isAdmin
                     });
                 }
             }
-        } catch (error) {
-            next(createError.InternalServerError('Kết nối đến server looix'));
-        }
+        // } catch (error) {
+        //     next(createError.InternalServerError('Kết nối đến server looi'));
+        // }
     };
     check = async (req, res, next) => {
         try {
             const user = req.user;
             const { exp, isAdmin, email } = user;
-            if (exp * 1000 < Date.now()) {
-                next(createError(401, 'Bạn chưa đăng nhập1'));
-            } else {
+          
                 if (!isAdmin) {
                     next(createError(401, 'Bạn chưa đăng nhập2'));
                 }
@@ -112,11 +99,16 @@ class AcountAdmin {
                     });
                 } else {
                     next(createError(401, 'Chưa đăng nhập'));
-                }
             }
         } catch (error) {
             next(createError(500, 'Không thể kết nối tới server'));
         }
     };
+    logout = (req,res)=>{
+return  res.status(200).json({
+    success:true,
+    message:'logout'
+})
+    }
 }
 module.exports = new AcountAdmin();
